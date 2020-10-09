@@ -1,0 +1,96 @@
+---
+title: "p8105_hw3_ml4424"
+author: "Maggie Li (ml4424)"
+date: "10/9/2020"
+output: github_document
+---
+
+## Problem 1
+
+```{r load data}
+library(p8105.datasets)
+library(tidyverse)
+library(utils)
+library(ggplot2)
+library(patchwork)
+library(ggridges)
+
+
+data("instacart")
+# View(instacart)
+head(instacart)
+
+## more descriptives for illustrative examples
+length(unique(instacart$product_id))
+length(unique(instacart$user_id))
+length(unique(instacart$department))
+```
+
+**Description**: This dataset contains 1,384,617 observations that represent a unique product from an Instacart order in 2017. These data appear nested: these are products within orders within customers. There are 15 total variables; key variables include identifying the order that product came from, identifying the product, the order in which the item was added to the cart, if the product was a reorder, identifying the customer, order sequence number of the specific user, the day of week the order was placed, the hour of week the order was placed, the days that have passed since the last order by the customer, the name of the product, identifying the aisle and department of the product and the names of the aisle and department.
+
+There are 131,209 users ordering 39,123 unique products from 21 unique departments such as dairy, canned goods, produce, bulk, bakery, household, etc.
+
+```{r}
+## How many aisles are there?
+length(unique(instacart$aisle_id))
+
+## which aisles are the most items ordered from?
+instacart %>% 
+  count(aisle, name = "n_obs") %>% 
+  arrange(desc(n_obs))
+```
+
+There are 134 unique aisles. The fresh vegetable aisle has the most items ordered from it.
+
+```{r}
+## Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
+
+## aisles with more than 10,000 items. there are 39 unique aisles
+select_aisles <- instacart %>% 
+  count(aisle, name = "n_obs") %>% 
+  filter(n_obs > 10000)
+
+## plot select aisles
+
+```
+
+
+
+## Problem 2
+```{r part 1 load tidy wrangle data}
+accel <- read_csv("prob2_data/accel_data.csv") %>% 
+  janitor::clean_names() %>% 
+  drop_na() %>% 
+  pivot_longer(cols = starts_with("activity"),
+               names_to = "minute_of_day",
+               values_to = "activity_ct") # note: convert wide to long, so each row is a minute of day
+accel
+
+## Part 1 add weekday vs weekend variable
+accel <- accel %>% 
+  mutate(weekday = ifelse(day %in% c('Monday','Tuesday',
+                                     'Wednesday', 'Thursday',
+                                     'Friday'),
+                          "yes", "no"))
+
+view(accel)
+length(unique(accel$minute_of_day))
+```
+
+**Description**: The dataset contains a variable for week number (1-5), day_id and day to indicate day of week, minute of the day (1-1440), the activity counts for each minute, and whether the activity count was recorded on a weekday or not. There are 50,400 data entries (7 days/week * 5 weeks * 1440 minutes/day).
+
+```{r part 2 aggregate and table}
+## aggregate across minutes to create total activity count per day
+daily_accel <- accel %>% 
+  group_by(day_id) %>% 
+  summarize(daily_ct = sum(activity_ct))
+daily_accel
+```
+**Trends**: There appears to be 
+
+## Problem 3
+```{r}
+ny_noaa <- data("ny_noaa")
+ny_noaa
+```
+
