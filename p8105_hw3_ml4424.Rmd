@@ -257,6 +257,13 @@ jan_jul_mean_temps <- jan_jul_temps %>%
   mutate(year = as.numeric(year))
 
 jan_jul_mean_temps
+jan_mean_temps <- jan_jul_mean_temps %>% 
+  filter(month == "01")
+jul_mean_temps <- jan_jul_mean_temps %>% 
+  filter(month == "07")
+mean(jan_mean_temps$mean_tmax)
+mean(jul_mean_temps$mean_tmax)
+
 
 ## plot
 jan_jul_mean_temps %>% ggplot(aes(x=year, y = mean_tmax, color = month)) +
@@ -265,9 +272,76 @@ jan_jul_mean_temps %>% ggplot(aes(x=year, y = mean_tmax, color = month)) +
   facet_grid(~month)
 
 ```
-**Comment**:
+**Comments**: The mean maximum temperature for January is around 0 degrees C between 1981 and 2010. The mean maximum temperature for July is around 25 degrees C between 1981 and 2010. Across the monitor stations with available data, January maximum temperatures tend to fluctuate more than July temperatures, which are more stable on average across monitors stations year-to-year. In January, there appears to be more outliers both in the positive and negative direction away from the 0 degrees C line, while outliers in July tend toward more the negative direction.
 
-```{r part 3 two panel plot showing tmax and tmin}
+```{r part 3.1 showing tmax and tmin all months}
+# aggregate data with annual tmax and tmin to plot
+all_temp <- cleaned_ny_noaa %>% 
+  select(id, year, month, tmax, tmin) %>% 
+  drop_na() %>% 
+  group_by(year, month) %>% 
+  summarize(mean_tmax = mean(tmax),
+            mean_tmin = mean(tmin)) %>% 
+  mutate(year = as.numeric(year))
+  
+all_temp
+
+# # for plot, have x-axis be study month; you see seasonal trends but NOT THE BEST VIZ
+# all_temp_months <- all_temp %>% 
+#   tibble::rowid_to_column("month_num")
+# all_temp_months
+# 
+# # plot
+# ggplot() +
+#   geom_line(data = all_temp_months,
+#             aes(x = month_num, y = mean_tmax, color = "red")) +
+#   geom_line(data = all_temp_months,
+#             aes(x = month_num, y = mean_tmin, color = "blue"))
+
+## alternative: just plot annual averages
+annual_temps <- cleaned_ny_noaa %>% 
+  select(id, year, month, tmax, tmin) %>% 
+  drop_na() %>% 
+  group_by(year) %>% 
+  summarize(mean_tmax = mean(tmax),
+            mean_tmin = mean(tmin)) %>% 
+  mutate(year = as.numeric(year))
+  
+annual_temps
+
+annual_temps %>% ggplot(aes(x=year, y = mean_tmax, color = month)) +
+  geom_point(alpha = 0.5) + 
+  geom_smooth() 
+
+annual_temp_plot <- ggplot() +
+  geom_line(data = annual_temps,
+            aes(x = year, y = mean_tmax, color = "red")) +
+  geom_line(data = annual_temps,
+            aes(x = year, y = mean_tmin, color = "blue"))
+
+## 
+
+```
+
+```{r part 3.2 distribution of snowfall greater than 0 less than 100 annually}
+
+## filter accordingly
+cleaned_snow <- cleaned_ny_noaa %>% 
+  drop_na(snow) %>% 
+  filter(snow > 0,
+         snow < 100) %>% 
+  group_by(year, month, id) %>% 
+  summarize(agg_snow = mean(snow))
+cleaned_snow
+
+## plot using ridges
+ggplot(cleaned_snow, aes(x=agg_snow, y = year)) +
+  geom_density_ridges(scale = .85)
+
+## plot using boxplots
+ggplot(cleaned_snow, aes(x=agg_snow, y = year)) +
+  geom_boxplot()
+
 
 ```
 
