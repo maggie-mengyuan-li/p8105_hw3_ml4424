@@ -14,6 +14,7 @@ library(utils)
 library(ggplot2)
 library(patchwork)
 library(ggridges)
+library(lubridate)
 
 
 data("instacart")
@@ -30,7 +31,7 @@ length(unique(instacart$department))
 
 There are 131,209 users ordering 39,123 unique products from 21 unique departments such as dairy, canned goods, produce, bulk, bakery, household, etc.
 
-```{r}
+```{r part 1}
 ## How many aisles are there?
 length(unique(instacart$aisle_id))
 
@@ -40,9 +41,9 @@ instacart %>%
   arrange(desc(n_obs))
 ```
 
-There are 134 unique aisles. The fresh vegetable aisle has the most items ordered from it.
+**Comment**: There are 134 unique aisles. The fresh vegetable aisle has the most items ordered from it.
 
-```{r}
+```{r part 2}
 ## Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it.
 
 ## aisles with more than 10,000 items. there are 39 unique aisles
@@ -50,11 +51,105 @@ select_aisles <- instacart %>%
   count(aisle, name = "n_obs") %>% 
   filter(n_obs > 10000)
 
+unique(select_aisles$aisle)
 ## plot select aisles
+aisles_plot <- ggplot(select_aisles, 
+                      aes(x=aisle, y = n_obs, fill = aisle)) +
+  geom_bar(stat="identity") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) +
+  labs(
+    title = "Number of Items in Aisles with over 10,000 items",
+    y = "Number of Items",
+    caption = "Data from Instacart")
+
+aisles_plot
+
+median(select_aisles$n_obs)
 
 ```
 
+**Comment**: The two most popular items by an order of magnitude are fresh fruits and fresh vegetables. Packaged vegetable fruits, packaged cheese, yogurt, water seltzer sparkling water follow after in number of products sold. The mean number of items sold out of all these categories is 27,281 items and the median number is 16,201 items.
 
+```{r part 3}
+## Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+
+## baking ingredients
+baking_top3 <- instacart %>% 
+  filter(aisle == "baking ingredients") %>% 
+  count(product_name, name = "n_obs") %>% 
+  arrange(desc(n_obs)) %>% 
+  head(3) %>% #select top 3
+  mutate(aisle = "baking ingredients") #ID col once joined to other tbls
+baking_top3
+
+## dog food care
+dogfood_top3 <- instacart %>% 
+  filter(aisle == "dog food care") %>% 
+  count(product_name, name = "n_obs") %>% 
+  arrange(desc(n_obs)) %>% 
+  head(3) %>% #select top 3
+  mutate(aisle = "dog food care") #ID col once joined to other tbls
+dogfood_top3
+
+## packaged vegetables fruits
+pckgd_top3 <- instacart %>% 
+  filter(aisle == "packaged vegetables fruits") %>% 
+  count(product_name, name = "n_obs") %>% 
+  arrange(desc(n_obs)) %>% 
+  head(3) %>% #select top 3
+  mutate(aisle = "packaged vegetables fruits") #ID col once joined to other tbls
+
+pckgd_top3
+
+##join these to make a single table
+top3 <- rbind(baking_top3, dogfood_top3, pckgd_top3) %>%
+  rename(num_times_ordered = n_obs)
+top3
+
+## work in progress: finding a more efficient way?
+# instacart %>% 
+#   filter(aisle == 
+#            c("baking ingredients",
+#                     "dog food care",
+#                     "packaged vegetables fruits")) %>% 
+#   group_by(aisle) %>% 
+#   count(product_name, name = "n_obs") %>% 
+#   arrange(desc(n_obs)) %>% 
+#   head(3) %>% #select top 3
+#   mutate(aisle = "baking ingredients")
+```
+**Comment**: Light brown sugar, pure baking soda, and cane sugar were all the top items sold in baking ingredients, with 300-500 total orders containing each. Snack Sticks Chicken & Rice Recipe Dog Treats, Organix Chicken & Brown Rice Recipe	, and small dog biscuits were the top items sold in dog food care, with 26-30 total orders containing each. Organic baby spinach, organic raspberries, and organic blueberries were the top packaged vegetable fruit items sold, with 4900-9800 total orders containing each.
+
+```{r part 4}
+# Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+## Note: each column is apple and coffee, each row is day of the week, each cell is mean hour of day they are ordered on each day of week 
+
+pl_apples <- instacart %>% 
+  filter(str_detect(product_name, 'Pink Lady Apples')) %>% 
+  group_by(order_dow) %>% 
+  summarize(mean_hr = mean(order_hour_of_day)) %>% 
+  dplyr::rename(pink_lady_apples = mean_hr)
+pl_apples
+
+coffee_ic <- instacart %>% 
+  filter(str_detect(product_name, 'Coffee Ice Cream')) %>% 
+  group_by(order_dow) %>% 
+  summarize(mean_hr = mean(order_hour_of_day)) %>% 
+  dplyr::rename(coffee_ice_cream = mean_hr)
+coffee_ic
+
+mean_hrs_all <- inner_join(pl_apples, coffee_ic) %>% 
+  mutate(order_dow = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", 
+    "Friday", "Saturday"))
+mean_hrs_all
+```
+**Comment**: On Sunday, pink lady apples and coffee ice cream were both ordered on average a bit after at 1pm; on Monday, on average pink lady apples were ordered a bit after 11am and coffee ice cream close to 2pm; on Tuesday, on average pink lady apples were ordered around noon and coffee ice cream a bit after 3pm; on Wednesday, on average pink lady apples were ordered around 2pm and coffee ice cream a bit after 3pm; on Thursday, on average pink lady apples were ordered at noon and coffee ice cream a bit before 3pm;
+on Friday, on average pink lady apples were ordered close to 1pm and coffee ice cream a bit after noon; on Saturday, on average pink lady apples were ordered around noon and coffee ice cream ordered at 2pm.
+
+These patterns seem to fit with the trend thatice cream tends to be more frequently ordered later in the day than healthier snacks.
 
 ## Problem 2
 ```{r part 1 load tidy wrangle data}
@@ -71,26 +166,108 @@ accel <- accel %>%
   mutate(weekday = ifelse(day %in% c('Monday','Tuesday',
                                      'Wednesday', 'Thursday',
                                      'Friday'),
-                          "yes", "no"))
-
-view(accel)
-length(unique(accel$minute_of_day))
+                          "yes", "no")) 
+accel
+length(unique(accel$minute_of_day)) #check that there are 1440 minutes in a 24-hour period
 ```
 
 **Description**: The dataset contains a variable for week number (1-5), day_id and day to indicate day of week, minute of the day (1-1440), the activity counts for each minute, and whether the activity count was recorded on a weekday or not. There are 50,400 data entries (7 days/week * 5 weeks * 1440 minutes/day).
 
 ```{r part 2 aggregate and table}
-## aggregate across minutes to create total activity count per day
+## aggregate across minutes to create total activity count per day in table
 daily_accel <- accel %>% 
   group_by(day_id) %>% 
   summarize(daily_ct = sum(activity_ct))
 daily_accel
+
+## plot it to spot any trends
+ggplot(daily_accel, aes(x = day_id, y = daily_ct)) +
+  geom_point()
 ```
-**Trends**: There appears to be 
+**Trends**: There does not appear to be any trends present when we look at aggregated daily activity count. 
+
+```{r part 3-- plot 24 hr activity time by dow}
+##order days of the week, convert minute to numeric for plot
+accel <- accel %>% 
+  mutate(day = factor(day, levels = c('Monday','Tuesday',
+                                     'Wednesday', 'Thursday',
+                                     'Friday', 'Saturday', 'Sunday'))) %>% 
+  mutate(minute = as.numeric(str_extract(minute_of_day, "[^_]+$")))
+
+accel
+
+length(unique(accel$minute)) # check we still have 1440 min in 24-h day
+
+##plot 
+ggplot(accel, aes(x = minute,
+                  y= activity_ct,
+                  color = day)) +
+  theme_linedraw() +
+  # geom_point(aes(alpha = 0.5)) + ##cleaner without all the points
+  geom_smooth(se = FALSE) 
+```
+**Conclusions**: There certainly appears to be differences in activity count throughout the day, and also by day of the week. Values tend to be higher on weekends in the late morning hours (10-11am) and around early evening (6-7pm). The weekday values are more similar to one another, with slight peaks in the early morning hours and evening as well. The values all dip at the end of the day, near midnight and stay low until rising again around 5am across all days of the week.
 
 ## Problem 3
-```{r}
+```{r read data}
 ny_noaa <- data("ny_noaa")
 ny_noaa
+
+## check how much data are missing
+ny_noaa %>% drop_na()
+```
+**Description**: The data contain the ID of the weather station, the date the data were collected, and the following five metrics: precipitation level (1/10 mm), snowfall level (mm), snow depth (mm), maximum temperature (1/10 degrees C), minimum temperature (1/10 degrees C). There are a total of 2,595,176 unique daily observations. A bit more than half the observations contain at least one missing metric out of the five.
+
+```{r part 1 clean data and commonly observed snowfall}
+
+## separate month date year; mutate precip to mm to be same as snow; tmax and tmin to degrees C
+cleaned_ny_noaa <- ny_noaa %>% 
+  separate(date, c("year", "month", "date")) %>% 
+  mutate(prcp = prcp/10,
+         tmax = as.integer(tmax)/10,
+         tmin = as.integer(tmin)/10)
+cleaned_ny_noaa
+
+## drop weird values (negative snowfall)
+cleaned_ny_noaa <- cleaned_ny_noaa %>% 
+  filter(snow >= 0) 
+
+## most commonly observed snowfall values
+summary(cleaned_ny_noaa) # note that 1st quartile, median, and 3rd quartile snowfall are all 0mm
+nrow(cleaned_ny_noaa %>% filter(snow == 0))
+```
+
+**Comments**: The most commonly observed value for snowfall is 0mm. 2,008,508 observations out of 2,213,954 total observations observed no snowfall. This is because in New York State, it typically only snows a few months a year and not often in the months that it does snow.
+
+
+```{r part 2 two panel plot of max jan july temps}
+## filter jan and july months
+jan_jul_temps <- cleaned_ny_noaa %>% 
+  filter(month == "01" | month == "07") %>% 
+  select(id, year, month, date, tmax) %>% 
+  drop_na()
+
+## aggregate to get df of year, month (01 or 07), mean tmax; make year a double for plotting
+jan_jul_temps
+summary(jan_jul_temps)
+
+jan_jul_mean_temps <- jan_jul_temps %>% 
+  group_by(id, year, month) %>% 
+  summarize(mean_tmax = mean(tmax)) %>% 
+  mutate(year = as.numeric(year))
+
+jan_jul_mean_temps
+
+## plot
+jan_jul_mean_temps %>% ggplot(aes(x=year, y = mean_tmax, color = month)) +
+  geom_point(alpha = 0.5) + 
+  geom_smooth() + 
+  facet_grid(~month)
+
+```
+**Comment**:
+
+```{r part 3 two panel plot showing tmax and tmin}
+
 ```
 
