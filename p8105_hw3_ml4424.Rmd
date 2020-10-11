@@ -194,17 +194,29 @@ accel <- accel %>%
                                      'Friday', 'Saturday', 'Sunday'))) %>% 
   mutate(minute = as.numeric(str_extract(minute_of_day, "[^_]+$")))
 
-accel
+## convert add hours column
+accel_3 <- accel %>% 
+  mutate(hour = minute %/% 60,
+         hour = as.integer(hour),
+         study_day = paste(week, day)) %>% 
+  group_by(study_day, hour) %>% 
+  summarize(mean_activity = mean(activity_ct))
 
 length(unique(accel$minute)) # check we still have 1440 min in 24-h day
 
-##plot 
-ggplot(accel, aes(x = minute,
-                  y= activity_ct,
-                  color = day)) +
+## plot: should have 35 lines with 7 diff colors
+accel_3 %>% ggplot(aes(x = hour,
+                  y= mean_activity,
+                  color = study_day)) +
   theme_linedraw() +
   # geom_point(aes(alpha = 0.5)) + ##cleaner without all the points
-  geom_smooth(se = FALSE) 
+  geom_line() +
+    labs(title = "Accelerometer Counts across 35 days",
+       x = "Hour of Day",
+       y = "Mean Hourly Activity Count") + # clean axis/titles
+  scale_color_hue(name = "Study Day") # clean legend title
+  
+  
 ```
 **Conclusions**: There certainly appears to be differences in activity count throughout the day, and also by day of the week. Values tend to be higher on weekends in the late morning hours (10-11am) and around early evening (6-7pm). The weekday values are more similar to one another, with slight peaks in the early morning hours and evening as well. The values all dip at the end of the day, near midnight and stay low until rising again around 5am across all days of the week.
 
@@ -269,7 +281,7 @@ mean(jul_mean_temps$mean_tmax)
 jan_jul_mean_temps %>% ggplot(aes(x=year, y = mean_tmax, color = month)) +
   geom_point(alpha = 0.5) + 
   geom_smooth() + 
-  facet_grid(~month)
+  facet_grid(~month) +
 
 ```
 **Comments**: The mean maximum temperature for January is around 0 degrees C between 1981 and 2010. The mean maximum temperature for July is around 25 degrees C between 1981 and 2010. Across the monitor stations with available data, January maximum temperatures tend to fluctuate more than July temperatures, which are more stable on average across monitors stations year-to-year. In January, there appears to be more outliers both in the positive and negative direction away from the 0 degrees C line, while outliers in July tend toward more the negative direction.
@@ -305,19 +317,24 @@ annual_temps <- cleaned_ny_noaa %>%
   group_by(year) %>% 
   summarize(mean_tmax = mean(tmax),
             mean_tmin = mean(tmin)) %>% 
-  mutate(year = as.numeric(year))
+  mutate(year = as.numeric(year)) 
   
-annual_temps
+annual_temps %>% 
+  pivot_longer( tmax:tmin, names_to =
+"observation"
+, values_to =
+"temp"
+) %>%
 
 annual_temps %>% ggplot(aes(x=year, y = mean_tmax, color = month)) +
   geom_point(alpha = 0.5) + 
   geom_smooth() 
 
-annual_temp_plot <- ggplot() +
-  geom_line(data = annual_temps,
-            aes(x = year, y = mean_tmax, color = "red")) +
-  geom_line(data = annual_temps,
-            aes(x = year, y = mean_tmin, color = "blue"))
+# annual_temp_plot <- ggplot() +
+#   geom_line(data = annual_temps,
+#             aes(x = year, y = mean_tmax, color = tmax)) +
+#   geom_line(data = annual_temps,
+#             aes(x = year, y = mean_tmin, color = tmin))
 
 ## 
 
@@ -339,9 +356,12 @@ ggplot(cleaned_snow, aes(x=agg_snow, y = year)) +
   geom_density_ridges(scale = .85)
 
 ## plot using boxplots
-ggplot(cleaned_snow, aes(x=agg_snow, y = year)) +
+snow_plot <- ggplot(cleaned_snow, aes(x=agg_snow, y = year)) +
   geom_boxplot()
 
+```
 
+```{r part 3.3 combine plots into same panel}
+annual_temp_plot + snow_plot
 ```
 
