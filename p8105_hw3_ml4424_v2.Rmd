@@ -221,13 +221,19 @@ There appears to be differences in activity count throughout the day, and also b
 There also appears to be differences between given days of the week across the five weeks; for example, the Sunday hourly activity counts vary week-to-week, with some weeks having higher peaks (2 Sundays around 8am and 11am) or more normal (the rest of the Sundays during those times) mean hourly activity counts.
 
 ## Problem 3
-```{r read data, cache = TRUE}
-ny_noaa <- data("ny_noaa")
+```{r read data, echo = FALSE}
+ data("ny_noaa")
 
-## check how much data are missing
+## check how much data are missing for each metric
 ny_noaa %>% summarize_all(~sum(is.na(.)))
+
+## rows with missing data
+ny_noaa %>% drop_na() %>% nrow()
 ```
-**Description**: The original data contain the ID of the weather station, the date the data were collected, and the following five metrics: precipitation level (1/10 mm), snowfall level (mm), snow depth (mm), maximum temperature (1/10 degrees C), minimum temperature (1/10 degrees C). There are a total of 2,595,176 unique daily observations. A bit more than half the observations (1,222,433) contain at least one missing metric out of the five.
+**Description**: The original data contain the ID of the weather station, the date the data were collected, and the following five metrics: precipitation level (1/10 mm), snowfall level (mm), snow depth (mm), maximum temperature (1/10 degrees C), minimum temperature (1/10 degrees C). There are a total of 2,595,176 unique daily observations. 
+There is missing data for precipitation for 145838 observations, missing data for snowfall for 381221 observations, missing data for snow depth for 591786 observations, missing data for maximum temperature for 1134358 observations and missing data for minimum temperature for 1134420 observations.
+
+A bit more than half the observations (1,222,433) contain at least one missing metric out of the five.
 
 ```{r part 1 clean data and commonly observed snowfall}
 
@@ -342,6 +348,8 @@ snow_plot <- ggplot(cleaned_snow, aes(x=agg_snow, y = year)) +
 ```{r part 3.3 combine plots into same panel}
 annual_temp_plot + snow_plot
 ```
+
+
 **Comments**: The annual mean maximum and minimum temperatures between 1981 and 2020 fluctuate considerably over time. That being said, the time series for both max and min temperatures run pretty parallel to one another (i.e. years of unusually high mean max temperatures also had unusually high mean min temperatures; years of unusally low mean max temperatures also had unusually low mean min temperatures). This plot averages out the seasonal variability within years, so its interpretation is most applicable to study questions that involve examining variations in mean max and min temperatures year-to-year.
 
 Some unsually high mean max/min temperature years include 1990, 1991, 1997, 2001, 2006. Some unusally low mean max/min temperature years include 1989, 1994, 2000, 2003.
